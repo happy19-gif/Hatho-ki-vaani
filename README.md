@@ -1,87 +1,257 @@
-# Hatho-ki-vaani[README.md](https://github.com/user-attachments/files/33268114/README.md)
-# Hatho Ki Vaani — हाथों की वाणी
+## Hatho Ki Vaani (हाथों की वाणी)
 
-**Your hands. Your voice.** A single-page sign-language-to-caption-and-voice prototype with local webcam hand tracking, a sign library, multilingual UI, a two-thumbs-up speak command, and a server-side ElevenLabs proxy.
+<!-- Add a screenshot or thumbnail here: ![Hatho Ki Vaani Thumbnail](images/thumbnail.png) -->
 
-> **Important limitation:** this project ships in `USE_DEMO_MODE = true`. The prediction words are simulated examples, not real sign recognition and not suitable for safety-critical communication. The included pictures for ASL letters/numbers are generic original hand illustrations clearly labelled **illustration only**; they are not ASL signs. Other sign pictures, approved how-to descriptions, and real sign videos need to be supplied and checked by qualified ISL/ASL contributors. Do not use the current placeholder descriptions as a learning authority.
+*Hatho Ki Vaani ("Your hands. Your voice.") is a real-time sign language to text and voice translator that runs in the browser. It uses the webcam and MediaPipe to track hands, TensorFlow.js classifiers to recognise Indian Sign Language (ISL, 2 hands) and American Sign Language (ASL, 1 hand), and shows recognised signs as live captions. A serverless proxy keeps the ElevenLabs key secret so the captions can be spoken in a male or female voice. All video is processed on the user's device.*
 
-## Run locally
+## Full App Flow Inshort
+The browser opens the webcam, MediaPipe finds the hand landmarks in each frame, the landmarks are normalised and collected into a 30-frame window, a classifier predicts the sign, and a confident sign is added to the caption box. When the user presses Speak (or, in a later release, shows a double thumbs-up), the caption is sent to `/api/speak`, which calls ElevenLabs and returns audio.
 
-1. Unzip the project.
-2. Open the folder in VS Code and run it with the **Live Server** extension, or serve the folder with any static HTTP server. Camera access generally requires `localhost` or HTTPS; opening `index.html` as a `file://` URL will prevent some browser features from working.
-3. Click **Start camera**, allow access, and keep your hands in frame. The first visit shows a short tutorial. Press **T** while the page is focused to simulate the hands-free double-thumbs-up command in demo mode.
-4. Change ISL/ASL, the interface language, meaning language, theme, voice selection, confidence threshold and other preferences in the interface.
+## Live Demo
 
-External CDN resources are used for MediaPipe Tasks Vision, TensorFlow.js and Google Fonts. A network connection is required for the first model/runtime load. The browser camera feed is not sent by this code to a server.
+- **Website:** [https://hatho-ki-vaani-fixed.vercel.app](https://hatho-ki-vaani-fixed.vercel.app)
+- **No sign-up or login needed.** Open the site, allow the camera, and start signing.
+- **Demo mode:** with `USE_DEMO_MODE = true` the signs are simulated, so the app can be tested before real models exist.
 
-## Google Drive pictures and videos
+## Build Status
 
-The shared source folder configured in the UI is:
+| Part | Feature | Status |
+|------|---------|--------|
+| 1 | Core app: camera, hand tracking, ISL/ASL toggle, live caption, demo mode | Built |
+| 2 | Male/female voice (ElevenLabs proxy + browser fallback) | Planned |
+| 3 | Hands-free double thumbs-up speak gesture | Planned |
+| 4 | Sign library and multilingual dictionary | Planned |
+| 5 | How-to video, guided tutorial, FAQ | Planned |
+| 6 | Light / Dark / System theme | Planned |
+| 7 | Logo and pastel branding polish | Planned |
+| 8 | 8 interface languages, settings panel, caption history | Planned |
 
-<https://drive.google.com/drive/folders/1U-Pr4r1-cupgNOOq9NH_uTsQnPSVEKco>
+## Features Implemented
+- Live hand tracking with MediaPipe, with landmarks drawn over the camera feed.
+- ISL (2 hands, 42 landmarks) and ASL (1 hand, 21 landmarks) toggle, remembered in localStorage.
+- Sliding window of 30 frames, prediction every 3 frames, adjustable confidence threshold (default 80%).
+- A sign is accepted only after its confidence stays above the threshold for 5 frames; repeats are ignored until the hands leave or the sign changes.
+- Auto-space after 1.5 seconds with no hands.
+- Caption box with Speak, Clear, Undo, Add space, Mute, Start/Stop camera and A- / A+ text size.
+- Error states for blocked camera, no camera and failed model load, plus a loading screen with tips.
+- Demo mode with a mock classifier.
 
-The folder is linked in the Library and footer. Its file listing was not accessible from the build environment, so its files have **not** been imported automatically. Download or export only assets you have permission to reuse, then place local copies into this project. Predictable paths make it easy to replace them:
+## How I Approached the Problem
+I started by keeping everything in the browser: no build tools, no server for video, so privacy is built in. The app is split into small functions (`initCamera()`, `initHandTracking()`, `normaliseLandmarks()`, `predictSign()`, `updateCaption()`, `speakText()`), each doing one job.
 
-- Alphabet: `images/isl/alphabet/a.webp`, `images/asl/alphabet/a.webp`, etc.
-- Numbers: `images/{isl|asl}/numbers/0.webp` … `9.webp`
-- Words: `images/{isl|asl}/words/hello.webp`, `thank-you.webp`, etc.
-- Sentences: `images/{isl|asl}/sentences/how-are-you.webp`, etc.
-- Videos: keep a matching `.mp4` next to the image or change that entry's `video` property in `sign-data.js` to the local video path.
+To make recognition stable, landmarks are made position-independent by subtracting the wrist and dividing by hand size. A sliding window gives the classifier motion context, and a confidence streak plus a repeat lock stops one held sign from filling the caption with duplicates.
 
-The library checks the matching path and shows an **Image coming soon** placeholder if it is missing. It uses lazy-loaded images and descriptive alt text. For entries with videos, the detail panel displays an HTML video player. Do not replace an entry with an unverified gesture photo/video and present it as official; record the contributor/source and verify the sign variant before publishing.
+The ElevenLabs key never goes in browser code. A serverless function (`/api/speak.js`) reads it from an environment variable and returns audio, so the frontend only calls `/api/speak`.
 
-To add your own how-to MP4, set `HOW_TO_VIDEO_URL` in `app.js` to a direct MP4 URL. For a YouTube URL, the app uses a privacy-enhanced YouTube embed; use YouTube's own caption settings there. For a direct MP4, the subtitle dropdown switches `subtitles/{lang}.vtt` (English, Hindi, Spanish, French, Portuguese, Arabic, Chinese and Bengali). The shipped VTT files are empty starting templates.
+## Trade-offs I Made
+- I used plain HTML, CSS and vanilla JavaScript for zero build steps and easy deployment, but a framework would scale better for a very large app.
+- Hand tracking is loaded from a CDN, so the first load needs internet.
+- A demo classifier lets everything be tested early, but real accuracy depends entirely on the models you train.
+- Browser speech is used as a free fallback, but it sounds less natural than ElevenLabs.
 
-## Real sign recognition models
+# App Architecture
 
-1. Train/export TensorFlow.js **LayersModel** classifiers with the same landmark order and normalisation used in `app.js`.
-2. Add `models/asl/model.json` plus any weight shards. Expected input shape: `[1, 30, 63]` (30 frames × 21 points × x/y/z).
-3. Add `models/isl/model.json` plus any weight shards. Expected input shape: `[1, 30, 126]` (30 frames × 42 points × x/y/z). When only one hand is visible, the second ISL hand slot is zero-padded.
-4. Put output labels in the exact output-class order in `models/asl/labels.json` and `models/isl/labels.json`.
-5. Set `USE_DEMO_MODE = false` at the top of `app.js`. That is the one-line switch. The sample label JSON files are illustrative defaults and must be replaced to match your model's classes.
+```mermaid
+flowchart TB
+    CAM["Webcam<br>video stays on device"]
+    MP["MediaPipe Hand Landmarker<br>21 landmarks per hand"]
+    NORM["Normalise + 30-frame window<br>ASL 30 x 63 | ISL 30 x 126"]
+    TF["TensorFlow.js Classifier<br>/models/isl | /models/asl"]
+    CAP["Caption Box<br>confidence streak + repeat lock"]
+    SPEAK["speakText()"]
+    PROXY["/api/speak.js<br>serverless proxy"]
+    EL["ElevenLabs TTS"]
+    FALL["Browser SpeechSynthesis<br>fallback"]
 
-Landmarks are centred on each wrist and scaled by the maximum wrist-relative point distance. The rolling window keeps the last 30 frames, inference is attempted every third frame, and a sign is accepted after five consecutive above-threshold predictions (default 80%). Repeats are suppressed while the accepted label remains unchanged and unlocked when hands leave the frame. These are prototype heuristics; test across devices, signers, camera orientations and regional variants before relying on them.
+    CAM --> MP --> NORM --> TF --> CAP --> SPEAK
+    SPEAK --> PROXY --> EL
+    SPEAK -.offline.-> FALL
+```
 
-## Voice setup — Vercel
+## Flow Summary
+*Step-by-step application flow breakdown*
 
-1. Set `ELEVENLABS_API_KEY` in the Vercel project's Environment Variables. **Never add it to browser code or commit it.**
-2. Set `VOICE_MALE_ID` and `VOICE_FEMALE_ID` in `app.js` to your chosen ElevenLabs voice IDs.
-3. Deploy. The frontend sends `{ text, voiceId }` to `/api/speak`; the API function calls ElevenLabs and returns audio bytes. If it is unavailable or voice IDs remain placeholders, the app falls back to `SpeechSynthesis` on the user's device.
-4. The proxy limits text length and validates the voice ID, but a public launch should also add IP/user rate limiting and provider usage monitoring. Do not expose the endpoint publicly without abuse controls.
+### `01` Entry Point
+**`index.html`** loads `style.css` and `app.js` (as a module) and the TensorFlow.js CDN script.
 
-The browser fallback can select a likely matching system voice by name when available, but browser speech APIs do not guarantee that a voice is truly male/female or available in every language.
+### `02` Camera
+**`initCamera()`** asks for webcam access, starts the video and the frame loop, and reports blocked or missing cameras.
 
-## Voice setup — Netlify equivalent
+### `03` Hand Tracking
+**`initHandTracking()`** loads MediaPipe from the CDN (GPU first, CPU fallback) and detects up to 2 hands per frame.
 
-The included `netlify/functions/speak.js` performs the same proxy job, and `netlify.toml` rewrites `/api/speak` to that function. Add `ELEVENLABS_API_KEY` as a Netlify environment variable and set the same voice IDs in `app.js`. Add production rate limiting before public launch.
+### `04` Landmark Processing
+- `normaliseLandmarks()` subtracts the wrist and divides by hand size.
+- `buildFeatureVector()` makes 63 numbers for ASL, or 126 for ISL with the missing hand padded with zeros.
 
-## Add or edit library entries
+### `05` Prediction
+**`predictSign()`** runs every 3 frames on the 30-frame window (or the mock classifier in demo mode).
 
-Edit `sign-data.js`. `SIGN_LIBRARY` is structured as `SIGN_LIBRARY = { asl: { alphabet, numbers, words, sentences }, isl: { alphabet, numbers, words, sentences } }`. Every entry stores an `id`, `category`, multilingual `labels`, multilingual `description`, `image` path and optional `video`. The eight supported language codes are `en`, `hi`, `es`, `fr`, `pt`, `ar`, `zh` and `bn`. Update all eight labels and descriptions when adding entries. The `description` text is intentionally a verification placeholder right now; replace it with contributor-reviewed handshape, position and movement instructions before publication.
+### `06` Caption
+**`trackConfidence()`** accepts a sign after 5 confident frames, and **`updateCaption()`** adds it to the caption box.
 
-## Translation API hook
+### `07` Voice
+**`speakText()`** speaks the caption. Part 2 adds the ElevenLabs proxy, male/female voices, caching and fallback.
 
-Caption translation is a clearly marked integration hook. Set `TRANSLATION_API_URL` in `app.js` to your own HTTPS endpoint that accepts a JSON request `{ "text": "…", "targetLanguage": "hi" }` and returns `{ "translation": "…" }`. No translation server or third-party API key is included; the app warns rather than pretending that a translation succeeded.
+## Tech Stack
+*Versions used in the project*
 
-## Colour variables
+### Frontend
+<table>
+<tr>
+<td><strong>HTML / CSS</strong><br><sub>No build tools</sub></td>
+<td><strong>Vanilla JS</strong><br><sub>ES modules</sub></td>
+<td><strong>MediaPipe Tasks Vision</strong><br><sub>0.10.14</sub></td>
+<td><strong>TensorFlow.js</strong><br><sub>4.20.0</sub></td>
+</tr>
+</table>
 
-The palette is managed in `style.css` with CSS custom properties, including:
+### Voice & Backend
+<table>
+<tr>
+<td><strong>ElevenLabs</strong><br><sub>Text-to-speech</sub></td>
+<td><strong>Vercel Functions</strong><br><sub>/api/speak.js</sub></td>
+<td><strong>SpeechSynthesis</strong><br><sub>Browser fallback</sub></td>
+</tr>
+</table>
 
-- Light: `--bg #FFF8F3`, `--surface #FFFFFF`, `--surface-soft #F6F0FF`, `--primary #8E7CC3`, `--primary-soft #D9CFF7`, `--accent-pink #F7C6D9`, `--accent-peach #FFD6C0`, `--accent-mint #C4EAD8`, `--accent-sky #C5E0F7`, `--text #3B3552`, `--text-muted #716982`, `--border #EBE4F5`, `--success #24794F`, `--danger #A93F56`.
-- Dark: `--bg #1E1B2E`, `--surface #2A2640`, `--surface-soft #342F4E`, `--primary #C9B8FF`, `--primary-soft #4A4270`, `--accent-pink #E8A9C4`, `--accent-peach #F0B99C`, `--accent-mint #8FD1B3`, `--accent-sky #8FBFE6`, `--text #F3EEFF`, `--text-muted #C0B7D6`, `--border #494264`, `--success #8FD9B5`, `--danger #F0A3B0`.
+## Component Interaction Flow
 
-The app supports Light/Dark/System, localStorage preferences, responsive layout, keyboard navigation, large touch targets, focus outlines, RTL layout for Arabic and reduced-motion preferences.
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as app.js
+    participant C as Camera
+    participant M as MediaPipe
+    participant T as Classifier
+    participant P as /api/speak
+    participant E as ElevenLabs
 
-## Project contents
+    U->>A: Opens site
+    A->>C: initCamera()
+    C-->>A: Video stream
+    A->>M: initHandTracking()
+    loop Every frame
+        C->>M: Video frame
+        M-->>A: Hand landmarks
+        A->>A: normaliseLandmarks()
+        A->>T: predictSign() every 3 frames
+        T-->>A: Label + confidence
+        A->>A: Confidence streak (5 frames)
+        A->>U: updateCaption()
+    end
+    U->>A: Presses Speak
+    A->>P: POST text, voiceId
+    P->>E: Text-to-speech request
+    E-->>P: Audio
+    P-->>A: Audio
+    A->>U: Plays voice
+```
 
-- `index.html` — single-page UI and accessible dialogs
-- `style.css` — responsive pastel design and light/dark themes
-- `app.js` — webcam, MediaPipe, classifier integration, gesture, voice, tutorial and UI logic
-- `sign-data.js` — bilingual/multilingual library data
-- `logo.svg` — original gradient hand and sound-wave logo
-- `api/speak.js` — Vercel ElevenLabs proxy
-- `netlify/functions/speak.js` and `netlify.toml` — Netlify equivalent
-- `locales/*.json` — eight interface languages
-- `models/{asl,isl}/labels.json` and `models/README.md` — model wiring instructions; no fake weights included
-- `images/` — generic ASL alphabet/number illustrations and paths for contributor assets
-- `subtitles/*.vtt` — empty subtitle-track templates
+## Project Structure
+*Folder structure*
+
+```
+hatho-ki-vaani/
+├── index.html          # page layout
+├── style.css           # styles and colour variables
+├── app.js              # app logic, constants at the top
+├── logo.svg
+├── README.md
+├── api/
+│   └── speak.js        # ElevenLabs proxy (Part 2)
+├── models/
+│   ├── isl/            # model.json + labels.json (input 30 x 126)
+│   └── asl/            # model.json + labels.json (input 30 x 63)
+├── locales/            # translations (Part 8)
+├── images/             # sign images (Part 4)
+└── subtitles/          # .vtt files (Part 5)
+```
+
+## Quick Start
+*Get up and running in minutes*
+
+### Prerequisites
+
+<table>
+<tr>
+<td><strong>Modern browser</strong><br><sub>Chrome, Edge, Safari, Firefox</sub></td>
+<td><strong>Webcam</strong><br><sub>Camera access allowed</sub></td>
+<td><strong>VS Code + Live Server</strong><br><sub>Or any local web server</sub></td>
+</tr>
+</table>
+
+### `01` Run Locally
+
+The camera only works on `localhost` or `https`, not by double-clicking `index.html`.
+
+```bash
+# Option A: VS Code Live Server
+# Right-click index.html -> Open with Live Server
+
+# Option B: any static server
+npx serve .
+```
+
+### `02` Use Real Models
+
+At the top of `app.js`:
+
+```js
+const USE_DEMO_MODE = true;   // set to false to use real models
+```
+
+Put your TensorFlow.js models in `/models/asl/` and `/models/isl/` (`model.json` and `labels.json`):
+
+- **ASL:** input shape `30 x 63`
+- **ISL:** input shape `30 x 126`
+
+### `03` Voice Setup (Part 2)
+
+```bash
+# Vercel environment variable (never put the key in browser code)
+ELEVENLABS_API_KEY=your-key-here
+```
+
+Then set `VOICE_MALE_ID` and `VOICE_FEMALE_ID` at the top of `app.js`.
+
+## API Reference
+
+### POST Endpoints
+
+<table>
+<tr><th>Endpoint</th><th>Description</th></tr>
+<tr><td><code>/api/speak</code></td><td>Send <code>{ text, voiceId }</code>, receive audio from ElevenLabs (Part 2)</td></tr>
+</table>
+
+> Note: the ElevenLabs API key is read from `ELEVENLABS_API_KEY` on the server and is never exposed to the browser.
+
+## Data Format
+*Sign library entries (Part 4)*
+
+```js
+SIGN_LIBRARY = { asl: { alphabet: [...], words: [...], sentences: [...] }, isl: { ... } }
+// entry: { id, category, labels: {en, hi, es, fr, pt, ar, zh, bn}, description: {...}, image, video }
+```
+
+## Deployment
+*Production deployment*
+
+<table>
+<tr><th>Service</th><th>Platform</th></tr>
+<tr><td><strong>Frontend</strong></td><td>Vercel</td></tr>
+<tr><td><strong>Voice proxy</strong></td><td>Vercel Function (Netlify Function also possible)</td></tr>
+<tr><td><strong>Models</strong></td><td>Static files in <code>/models</code></td></tr>
+</table>
+
+## Project Limitations & Assumptions:
+
+- Recognition quality depends on the TensorFlow.js models you provide; demo mode only simulates signs.
+- Hand tracking loads from a CDN, so an internet connection is needed on first load.
+- Works best with good lighting, a plain background and hands fully in frame.
+- The camera needs `https` or `localhost`.
+- Sign images in the library are placeholders or simple original drawings; none are claimed to be verified or official.
+- Part 2 to Part 8 features are planned and not yet built (see Build Status).
+
+*Made by [Your Name]*
+*Let's connect on [LinkedIn](https://linkedin.com/in/your-profile)*
