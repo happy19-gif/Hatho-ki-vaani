@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFF8F3">
+  <meta name="description" content="Hatho Ki Vaani — your hands, your voice. A privacy-first sign-language learning and translation demo.">
+  <title>Hatho Ki Vaani — Your hands. Your voice.</title>
+  <link rel="icon" type="image/svg+xml" href="./logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('hkv-theme') || 'system';
+        document.documentElement.dataset.theme = saved;
+      } catch (_) { document.documentElement.dataset.theme = 'system'; }
+    })();
+  </script>
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skipContent">Skip to content</a>
+  <header class="topbar">
+    <a class="brand" href="#main" aria-label="Hatho Ki Vaani home">
+      <img src="./logo.svg" alt="" class="brand-logo" width="46" height="46">
+      <span class="brand-copy"><strong>Hatho Ki Vaani</strong><small lang="hi">हाथों की वाणी</small></span>
+    </a>
+    <span class="tagline" data-i18n="tagline">Your hands. Your voice.</span>
+    <nav class="nav-actions" aria-label="Main navigation">
+      <a class="nav-link" href="#library" aria-label="Library"><span aria-hidden="true">▤</span><span data-i18n="library">Library</span></a>
+      <a class="nav-link" href="#howto" aria-label="How to use"><span aria-hidden="true">?</span><span data-i18n="howTo">How to use</span></a>
+      <button class="icon-button" id="languageMenuButton" type="button" aria-label="Choose interface language" title="Language">◎</button>
+      <label class="sr-only" for="uiLanguage" data-i18n="interfaceLanguage">Interface language</label>
+      <select id="uiLanguage" class="compact-select" aria-label="Interface language">
+        <option value="en">English</option><option value="hi">हिन्दी</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="ar">العربية</option><option value="zh">简体中文</option><option value="bn">বাংলা</option>
+      </select>
+      <div class="theme-wrap">
+        <button class="icon-button" id="themeButton" type="button" aria-label="Theme options" title="Theme">☼</button>
+        <select id="themeSelect" class="compact-select theme-select" aria-label="Theme"><option value="system" data-i18n="system">System</option><option value="light" data-i18n="light">Light</option><option value="dark" data-i18n="dark">Dark</option></select>
+      </div>
+      <button class="icon-button" id="settingsButton" type="button" aria-label="Open settings" title="Settings">⚙</button>
+    </nav>
+  </header>
+
+  <main id="main">
+
+
+    <section class="translator-section" aria-labelledby="translatorTitle">
+      <div class="section-heading translator-heading">
+        <div><p class="eyebrow" data-i18n="liveTranslator">LIVE TRANSLATOR</p><h2 id="translatorTitle" data-i18n="makeYourselfUnderstood">Make yourself understood</h2></div>
+        <div class="mode-toggle" role="group" aria-label="Sign language">
+          <button type="button" class="mode-button is-active" data-mode="isl" aria-pressed="true">ISL <small>India</small></button>
+          <button type="button" class="mode-button" data-mode="asl" aria-pressed="false">ASL <small>US</small></button>
+        </div>
+      </div>
+
+      <div class="translator-grid">
+        <section class="camera-panel panel" aria-label="Camera preview and hand tracking">
+          <div class="camera-panel-top">
+            <div class="live-label"><span class="status-dot" id="statusDot"></span><span id="handStatus" data-i18n="cameraOff">Camera is off</span></div>
+            <span class="demo-badge" id="demoBadge" data-i18n="demoMode">DEMO MODE</span>
+          </div>
+          <div class="camera-stage" id="cameraStage">
+            <video id="cameraVideo" autoplay playsinline muted aria-label="Live camera video"></video>
+            <canvas id="landmarkCanvas" aria-hidden="true"></canvas>
+            <div class="tracking-loading" id="trackingLoading" hidden><img src="./logo.svg" alt="" width="44" height="44"><strong data-i18n="loadingHands">Getting hand tracking ready…</strong><span class="loading-skeleton"></span><small data-i18n="cameraTips">Good lighting · plain background · keep hands fully in frame</small></div>
+            <div class="camera-empty" id="cameraEmpty">
+              <div class="permission-icon"><img src="./logo.svg" alt="" width="72" height="72"></div>
+              <h3 data-i18n="cameraReadyTitle">Ready when you are</h3>
+              <p data-i18n="privacyMessage">Your video stays on your device.</p>
+              <p class="permission-tips" data-i18n="cameraTips">Good lighting · plain background · keep hands fully in frame</p>
+              <button class="primary-button" id="startCameraEmpty" type="button"><span aria-hidden="true">▣</span> <span data-i18n="allowCamera">Allow camera</span></button>
+            </div>
+            <div class="camera-tip" id="cameraTip"><span aria-hidden="true">✦</span> <span data-i18n="keepHandsVisible">Keep both hands fully in frame</span></div>
+            <div class="gesture-ring-wrap" id="gestureRingWrap" aria-hidden="true">
+              <svg viewBox="0 0 52 52" class="gesture-ring"><circle class="ring-track" cx="26" cy="26" r="22"></circle><circle id="gestureRingProgress" class="ring-progress" cx="26" cy="26" r="22"></circle></svg>
+              <span>👍</span>
+            </div>
+          </div>
+          <div class="gesture-hint" id="gestureHint">
+            <div class="gesture-hint-emoji" aria-hidden="true">👍👍</div>
+            <div class="gesture-hint-copy"><strong data-i18n="gestureTitle">Hands-free speaking</strong><span data-i18n="gestureInstruction">Thumbs up with both hands, twice, to speak</span></div>
+            <div class="gesture-dots" aria-label="Gesture confirmation progress"><span id="gestureDot1" aria-label="First confirmation"></span><small>1/2</small><span id="gestureDot2" aria-label="Second confirmation"></span><small>2/2</small></div>
+          </div>
+          <div class="camera-actions">
+            <button class="primary-button" id="startCamera" type="button"><span aria-hidden="true">▣</span> <span data-i18n="startCamera">Start camera</span></button>
+            <button class="secondary-button" id="stopCamera" type="button" disabled><span aria-hidden="true">■</span> <span data-i18n="stopCamera">Stop</span></button>
+            <button class="secondary-button" id="flipCamera" type="button" disabled><span aria-hidden="true">↻</span> <span data-i18n="switchCamera">Switch camera</span></button>
+          </div>
+          <div class="practice-banner" id="practiceBanner" hidden><div><strong id="practiceTitle"></strong><span id="practiceStatusInline" role="status" aria-live="polite">Show this sign while the camera is on.</span></div><button class="icon-button" id="cancelPractice" type="button" aria-label="Exit practice">×</button></div>
+          <p class="camera-disclaimer" data-i18n="recognitionDisclaimer">Demo predictions are examples, not reliable sign-language translation.</p>
+        </section>
+
+        <section class="caption-panel panel" aria-labelledby="captionTitle">
+          <div class="caption-header"><div><p class="eyebrow" data-i18n="yourMessage">YOUR MESSAGE</p><h3 id="captionTitle" data-i18n="caption">Caption</h3></div><button class="text-button" id="showHistory" type="button">◷ <span data-i18n="history">History</span></button></div>
+          <div class="caption-box" id="captionBox" role="status" aria-live="polite" aria-atomic="false"><span class="caption-placeholder" id="captionPlaceholder" data-i18n="captionPlaceholder">Your words will appear here…</span><span id="captionText"></span></div>
+          <div class="caption-tools"><button class="small-tool" id="copyCaption" type="button" aria-label="Copy caption">▢ <span data-i18n="copy">Copy</span></button><button class="small-tool" id="shareCaption" type="button" aria-label="Share caption">↗ <span data-i18n="share">Share</span></button><button class="small-tool" id="downloadCaption" type="button" aria-label="Download caption as text">↓ <span data-i18n="download">Download</span></button><button class="small-tool" id="showFullScreen" type="button" aria-label="Show caption full-screen">⛶ <span data-i18n="showToOthers">Show to others</span></button></div>
+          <div class="caption-size-control"><span data-i18n="textSize">Text size</span><button class="size-button" id="textSmaller" type="button" aria-label="Decrease text size">A−</button><button class="size-button" id="textLarger" type="button" aria-label="Increase text size">A+</button></div>
+          <div class="voice-controls">
+            <div class="voice-heading"><div><p class="eyebrow" data-i18n="voiceOutput">VOICE OUTPUT</p><h3 data-i18n="chooseVoice">Choose a voice</h3></div><button id="muteButton" class="icon-button mute-button" type="button" aria-pressed="false" aria-label="Mute voice">🔊</button></div>
+            <div class="voice-choice" role="group" aria-label="Voice type"><button class="voice-button" type="button" data-voice="female" aria-pressed="true"><span aria-hidden="true">♀</span><span data-i18n="femaleVoice">Female voice</span></button><button class="voice-button" type="button" data-voice="male" aria-pressed="false"><span aria-hidden="true">♂</span><span data-i18n="maleVoice">Male voice</span></button></div>
+            <label class="volume-label" for="volumeSlider"><span data-i18n="volume">Volume</span><output id="volumeValue">80%</output></label><input id="volumeSlider" type="range" min="0" max="100" value="80" aria-label="Voice volume">
+            <button class="speak-button" id="speakButton" type="button"><span aria-hidden="true">🔊</span> <span data-i18n="speakMessage">Speak caption</span></button>
+            <p class="voice-notice" id="voiceNotice" aria-live="polite" hidden></p>
+          </div>
+          <div class="caption-bottom-actions"><button class="secondary-button" id="undoButton" type="button"><span aria-hidden="true">↶</span> <span data-i18n="undo">Undo</span></button><button class="secondary-button" id="spaceButton" type="button"><span aria-hidden="true">␣</span> <span data-i18n="addSpace">Add space</span></button><button class="secondary-button" id="clearButton" type="button"><span aria-hidden="true">⌫</span> <span data-i18n="clear">Clear</span></button></div>
+          <div class="translate-row"><label for="translateTo" data-i18n="translateCaptionTo">Translate caption to</label><select id="translateTo"><option value="none" data-i18n="noTranslation">No translation</option><option value="en">English</option><option value="hi">हिन्दी</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="ar">العربية</option><option value="zh">简体中文</option><option value="bn">বাংলা</option></select><button class="icon-button" id="translateButton" type="button" aria-label="Translate caption">↗</button></div>
+        </section>
+      </div>
+
+      <div class="notice-strip"><span class="notice-icon">♡</span><p><strong data-i18n="privacyFirst">Privacy first.</strong> <span data-i18n="privacyDetail">Camera frames are processed locally in your browser. Voice requests send only the caption text to your configured speech service.</span></p><button class="text-button" id="openSettingsInline" type="button" data-i18n="settings">Settings</button></div>
+    </section>
+
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="hero-copy">
+        <p class="eyebrow" data-i18n="heroEyebrow">Communication, made more accessible</p>
+        <h1 id="heroTitle">Your hands.<br><span>Your voice.</span></h1>
+        <p data-i18n="heroDescription">A calm space to explore sign language, build a caption, and speak it aloud. Your camera stays on this device.</p>
+        <div class="hero-chips"><span>✦ <span data-i18n="noAccount">No account</span></span><span>⌂ <span data-i18n="onDevice">On-device video</span></span><span>♡ <span data-i18n="accessibleByDesign">Designed for access</span></span></div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="art-blob art-blob-one"></div><div class="art-blob art-blob-two"></div>
+        <img src="./logo.svg" alt="" width="174" height="174">
+        <span class="art-spark spark-one">✦</span><span class="art-spark spark-two">✧</span><span class="art-dot"></span>
+      </div>
+    </section>
+
+    <section class="library-section" id="library" aria-labelledby="libraryTitle">
+      <div class="section-heading">
+        <div><p class="eyebrow" data-i18n="learnAndExplore">LEARN & EXPLORE</p><h2 id="libraryTitle" data-i18n="signLibrary">Sign library</h2><p class="section-subtitle" data-i18n="librarySubtitle">Explore letters, everyday words, and useful phrases.</p></div>
+        <div class="library-top-controls"><div class="mode-toggle compact-mode" role="group" aria-label="Library sign language"><button type="button" class="mode-button is-active" data-mode="isl" aria-pressed="true">ISL</button><button type="button" class="mode-button" data-mode="asl" aria-pressed="false">ASL</button></div><label class="sr-only" for="meaningLanguage" data-i18n="meaningLanguage">Meaning language</label><select id="meaningLanguage" class="standard-select"><option value="en">English</option><option value="hi">हिन्दी</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="ar">العربية</option><option value="zh">简体中文</option><option value="bn">বাংলা</option></select></div>
+      </div>
+      <div class="library-controls">
+        <div class="library-tabs" role="tablist" aria-label="Sign categories"><button id="tabAlphabet" role="tab" aria-selected="true" aria-controls="libraryResults" data-tab="alphabet" class="library-tab is-active" type="button" data-i18n="alphabet">Alphabet</button><button id="tabWords" role="tab" aria-selected="false" aria-controls="libraryResults" data-tab="words" class="library-tab" type="button" data-i18n="words">Words</button><button id="tabSentences" role="tab" aria-selected="false" aria-controls="libraryResults" data-tab="sentences" class="library-tab" type="button" data-i18n="sentences">Sentences</button><button id="tabDictionary" role="tab" aria-selected="false" aria-controls="libraryResults" data-tab="dictionary" class="library-tab" type="button" data-i18n="dictionary">Dictionary</button></div>
+        <div class="search-wrap"><span aria-hidden="true">⌕</span><label class="sr-only" for="librarySearch" data-i18n="searchLibrary">Search the library</label><input id="librarySearch" type="search" placeholder="Search in English or selected language" data-i18n-placeholder="searchPlaceholder"><button id="clearSearch" type="button" aria-label="Clear search">×</button></div>
+      </div>
+      <div class="alphabet-jump" id="alphabetJump" aria-label="Jump to letter"></div>
+      <div class="category-filters" id="categoryFilters" hidden><label for="categoryFilter" data-i18n="filterByCategory">Filter by category</label><select id="categoryFilter" class="standard-select"><option value="all" data-i18n="allCategories">All categories</option><option value="greetings" data-i18n="greetings">Greetings</option><option value="family" data-i18n="family">Family</option><option value="food" data-i18n="food">Food</option><option value="health" data-i18n="health">Health</option><option value="emergency" data-i18n="emergency">Emergency</option><option value="numbers" data-i18n="numbers">Numbers</option><option value="places" data-i18n="places">Places</option><option value="feelings" data-i18n="feelings">Feelings</option><option value="questions" data-i18n="questions">Questions</option><option value="daily" data-i18n="daily">Everyday</option></select></div>
+      <div class="source-note"><span class="source-note-icon">ⓘ</span><p data-i18n="signAccuracyNote">Sign languages have regional variation. Placeholder descriptions and sample illustrations are not verified learning guidance.</p><label class="show-all-toggle"><input type="checkbox" id="showAllLanguages"> <span data-i18n="showAllLanguages">Show all languages</span></label></div>
+      <div id="libraryResults" class="sign-grid" role="tabpanel" aria-labelledby="tabAlphabet"><p class="loading-library" data-i18n="loadingLibrary">Loading sign library…</p></div>
+      <p class="results-count" id="resultsCount" aria-live="polite"></p>
+      <p class="asset-credit"><span data-i18n="signImagesCredit">Sign images: add your sources here</span> · <a href="https://drive.google.com/drive/folders/1U-Pr4r1-cupgNOOq9NH_uTsQnPSVEKco" target="_blank" rel="noreferrer noopener" data-i18n="openAssetFolder">Open shared ISL Dictionary folder ↗</a></p>
+    </section>
+
+    <section class="howto-section" id="howto" aria-labelledby="howtoTitle">
+      <div class="section-heading"><div><p class="eyebrow" data-i18n="startHere">START HERE</p><h2 id="howtoTitle" data-i18n="howToUse">How to use Hatho Ki Vaani</h2><p class="section-subtitle" data-i18n="howToSubtitle">A quick walkthrough, with or without a video.</p></div><button class="secondary-button" id="reopenTutorial" type="button">▷ <span data-i18n="startTutorial">Start tutorial</span></button></div>
+      <div class="howto-grid">
+        <div class="video-card panel" id="howToVideoCard"><div class="video-placeholder" id="videoPlaceholder"><div class="video-play">▷</div><h3 data-i18n="videoComingSoon">Video coming soon</h3><p data-i18n="videoComingSoonDetail">Add a YouTube or MP4 URL in app.js to show your tutorial here.</p></div><video id="howToVideo" controls preload="metadata" playsinline hidden><track id="subtitleTrack" kind="subtitles" srclang="en" label="English" default></video><div class="video-footer"><span data-i18n="tutorialVideo">Tutorial video</span><label for="subtitleLanguage" data-i18n="subtitles">Subtitles</label><select id="subtitleLanguage" class="standard-select"><option value="en">English</option><option value="hi">हिन्दी</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="ar">العربية</option><option value="zh">简体中文</option><option value="bn">বাংলা</option></select></div></div>
+        <div class="steps-card panel"><h3 data-i18n="sixSimpleSteps">Six simple steps</h3><ol class="step-list"><li><span>1</span><div><strong id="step1Title" data-i18n="step1Title">Allow the camera</strong><p id="step1Body" data-i18n="step1Body">Tap Start camera and allow access in your browser.</p></div></li><li><span>2</span><div><strong id="step2Title" data-i18n="step2Title">Choose ISL or ASL</strong><p id="step2Body" data-i18n="step2Body">Pick the sign language you want to explore.</p></div></li><li><span>3</span><div><strong id="step3Title" data-i18n="step3Title">Show your sign</strong><p id="step3Body" data-i18n="step3Body">Use good lighting and keep your hands in frame.</p></div></li><li><span>4</span><div><strong id="step4Title" data-i18n="step4Title">Watch the text appear</strong><p id="step4Body" data-i18n="step4Body">A real model is needed for meaningful recognition; demo mode uses sample predictions.</p></div></li><li><span>5</span><div><strong id="step5Title" data-i18n="step5Title">Thumbs up twice to speak</strong><p id="step5Body" data-i18n="step5Body">Hold both thumbs up steadily, lower your hands, then repeat.</p></div></li><li><span>6</span><div><strong id="step6Title" data-i18n="step6Title">Choose your voice</strong><p id="step6Body" data-i18n="step6Body">Choose a male or female system voice and adjust the volume.</p></div></li></ol></div>
+      </div>
+      <div class="faq-card panel"><h3 data-i18n="faqTitle">Questions, answered</h3><details><summary data-i18n="faqVideoQ">Does my video leave my device?</summary><p data-i18n="faqVideoA">No video is uploaded by this app. The hand-tracking pipeline runs in your browser. Speaking a caption sends the caption text, not video, to your configured speech service.</p></details><details><summary data-i18n="faqRecognitionQ">Why is my sign not recognised?</summary><p data-i18n="faqRecognitionA">Demo mode only produces sample predictions. For real recognition, install a trained model that matches the selected sign language and landmark input shape. Lighting and camera framing can also affect tracking.</p></details><details><summary data-i18n="faqLanguageQ">Which sign language should I pick?</summary><p data-i18n="faqLanguageA">Choose the language used by the people communicating with you. ISL and ASL are distinct languages, not interchangeable gestures.</p></details><details><summary data-i18n="faqVoiceQ">How do I change the voice?</summary><p data-i18n="faqVoiceA">Use Female voice or Male voice in the caption panel. The browser fallback varies by device; configured ElevenLabs voices require voice IDs and a server environment key.</p></details></div>
+    </section>
+  </main>
+
+  <footer class="footer"><a class="footer-brand" href="#main"><img src="./logo.svg" alt="" width="30" height="30"><span>Hatho Ki Vaani</span></a><span data-i18n="footerTagline">Your hands. Your voice. Built with care.</span><a href="https://drive.google.com/drive/folders/1U-Pr4r1-cupgNOOq9NH_uTsQnPSVEKco" target="_blank" rel="noreferrer noopener" data-i18n="dictionaryAssets">Dictionary pictures & videos ↗</a></footer>
+
+  <aside class="settings-drawer" id="settingsDrawer" aria-label="Settings" aria-hidden="true">
+    <div class="drawer-header"><div><p class="eyebrow" data-i18n="preferences">PREFERENCES</p><h2 data-i18n="settings">Settings</h2></div><button class="icon-button" id="closeSettings" type="button" aria-label="Close settings">×</button></div>
+    <div class="drawer-body">
+      <label for="settingsMode" data-i18n="signLanguage">Sign language</label><select id="settingsMode" class="standard-select"><option value="isl">ISL · Indian Sign Language</option><option value="asl">ASL · American Sign Language</option></select>
+      <label for="confidenceSlider" class="setting-label"><span data-i18n="confidenceThreshold">Confidence threshold</span><output id="confidenceValue">80%</output></label><input id="confidenceSlider" type="range" min="50" max="99" value="80">
+      <label for="cameraSelector" data-i18n="camera">Camera</label><select id="cameraSelector" class="standard-select"><option value="">Default camera</option></select>
+      <label for="settingsUILanguage" data-i18n="interfaceLanguage">Interface language</label><select id="settingsUILanguage" class="standard-select"><option value="en">English</option><option value="hi">हिन्दी</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="ar">العربية</option><option value="zh">简体中文</option><option value="bn">বাংলা</option></select>
+      <label for="settingsTheme" data-i18n="theme">Theme</label><select id="settingsTheme" class="standard-select"><option value="system" data-i18n="system">System</option><option value="light" data-i18n="light">Light</option><option value="dark" data-i18n="dark">Dark</option></select>
+      <div class="setting-toggle"><div><strong data-i18n="speakGesture">Speak gesture</strong><p data-i18n="speakGestureDetail">Use two thumbs-up twice to speak the full caption.</p></div><input type="checkbox" id="speakGestureToggle" checked aria-label="Speak gesture"></div>
+      <div class="setting-toggle"><div><strong data-i18n="autoSpeakWord">Auto-speak each word</strong><p data-i18n="autoSpeakDetail">Speak accepted words automatically.</p></div><input type="checkbox" id="autoSpeakToggle" aria-label="Auto-speak each word"></div>
+      <div class="setting-toggle"><div><strong data-i18n="reduceMotion">Reduce motion</strong><p data-i18n="reduceMotionDetail">Use fewer animations.</p></div><input type="checkbox" id="reduceMotionToggle" aria-label="Reduce motion"></div>
+      <button class="primary-button drawer-done" id="closeSettingsDone" type="button" data-i18n="done">Done</button>
+    </div>
+  </aside>
+  <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+
+  <dialog class="sign-dialog" id="signDialog" aria-labelledby="detailTitle"><div class="dialog-toolbar"><button id="prevSign" type="button" class="icon-button" aria-label="Previous sign">←</button><span id="detailPosition">1 / 1</span><button id="nextSign" type="button" class="icon-button" aria-label="Next sign">→</button><button id="closeSignDialog" type="button" class="icon-button close-dialog" aria-label="Close sign details">×</button></div><div id="signDetailContent"></div></dialog>
+  <dialog class="tutorial-dialog" id="tutorialDialog" aria-labelledby="tutorialDialogTitle"><div class="tutorial-top"><img src="./logo.svg" alt="" width="44" height="44"><button class="icon-button" id="closeTutorial" type="button" aria-label="Close tutorial">×</button></div><div class="tutorial-progress" id="tutorialProgress"></div><div class="tutorial-illustration" id="tutorialIllustration" aria-hidden="true">☝️</div><p class="eyebrow" data-i18n="quickStart">QUICK START</p><h2 id="tutorialDialogTitle" data-i18n="tutorialTitle">Let's get started</h2><p class="tutorial-step-copy" id="tutorialStepCopy"></p><div class="tutorial-controls"><button class="text-button" id="skipTutorial" type="button" data-i18n="skip">Skip</button><label><input type="checkbox" id="dontShowTutorial"> <span data-i18n="dontShowAgain">Don't show again</span></label><button class="primary-button" id="nextTutorial" type="button" data-i18n="next">Next</button></div></dialog>
+  <dialog class="history-dialog" id="historyDialog" aria-labelledby="historyTitle"><div class="dialog-toolbar"><h2 id="historyTitle" data-i18n="captionHistory">Caption history</h2><button class="icon-button close-dialog" id="closeHistory" type="button" aria-label="Close history">×</button></div><div id="historyList" class="history-list"></div><button class="secondary-button" id="clearHistory" type="button" data-i18n="clearHistory">Clear history</button></dialog>
+  <dialog class="fullscreen-caption" id="fullscreenCaption" aria-labelledby="fullCaptionTitle"><button class="icon-button" id="closeFullScreen" type="button" aria-label="Close full screen caption">×</button><p id="fullCaptionTitle" class="eyebrow" data-i18n="fromHatho">FROM HATHO KI VAANI</p><div id="fullCaptionText" class="full-caption-text"></div><p data-i18n="showToOtherPerson">Show this screen to the other person</p></dialog>
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

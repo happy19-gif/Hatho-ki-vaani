@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Hatho Ki Vaani hand and sound waves">
+  <defs>
+    <linearGradient id="palm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C8B5F2"/><stop offset="1" stop-color="#F3AFCB"/></linearGradient>
+    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#94DDBB"/><stop offset="1" stop-color="#F8C4A6"/></linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#wave)" stroke-linecap="round" stroke-width="4.5"><path d="M66 18c9 7 12 15 12 24"/><path d="M76 10c12 9 17 20 17 33"/><path d="M58 10c6 5 9 12 9 19"/></g>
+  <path d="M39 87c-6 0-11-3-14-8L13 57c-2-4 0-8 4-9 3-1 6 1 8 4l9 11-4-37c0-4 2-7 6-7 4 0 6 3 7 7l3 24-1-31c0-4 3-7 7-7s7 3 7 7l1 31 2-23c0-4 3-6 6-6 4 0 6 3 6 7l-2 31c0 8-2 14-7 19l-9 7c-4 3-9 4-16 2z" fill="url(#palm)" stroke="#8975BE" stroke-width="2.1" stroke-linejoin="round"/>
+  <path d="M35 68c7 4 15 4 22 0" fill="none" stroke="#8975BE" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+  <path d="M45 78c3-5 8-5 11 0-3 5-8 5-11 0z" fill="#FFE4B8" stroke="#DDA8B9" stroke-width="1.2"/>
+</svg>
